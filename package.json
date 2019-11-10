@@ -1,0 +1,33 @@
+{
+  "name": "acolor",
+  "version": "1.0.0",
+  "description": "Typescript color library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "prepublish": "tsc",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ASCtheone/aColor.git"
+  },
+  "keywords": [
+    "color",
+    "acolor",
+    "typescript",
+    "library"
+  ],
+  "author": "ASCtheone",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ASCtheone/aColor/issues"
+  },
+  "homepage": "https://github.com/ASCtheone/aColor#readme",
+  "dependencies": {
+    "typescript": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.7"
+  }
+}
