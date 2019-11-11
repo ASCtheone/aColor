@@ -1,3 +1,28 @@
+interface _color {
+  R: ColorItem;
+  G: ColorItem;
+  B: ColorItem;
+  A: ColorItem;
+}
+interface _simpleColor {
+  R: number;
+  G: number;
+  B: number;
+  A?: number;
+}
+interface ColorItem {
+  e?: string;
+  value?: number;
+}
+interface ColorItemIterator extends ColorItem {
+  done: boolean
+}
+interface HslColor {
+  H: number;
+  S: number;
+  L: number;
+}
+
 export class Color {
     private static regHex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/gi;
 
@@ -115,10 +140,98 @@ export class Color {
         DARK: Color.fromHex('#455A64'),
         DARKER: Color.fromHex('#37474F'),
     };
+    private _colorRGB: _color = { R: {e: 'R', value:0 }, G: {e: 'G', value:0 }, B: {e: 'B', value:0 }, A: {e: 'A', value:0 } }
 
-    R : number;
-    G: number;
-    B: number;
+    get R() : number | undefined {
+      return this.colorRGB.R.value;
+    }
+    set R(R: number | undefined) {
+      this.colorRGB.R.value = R;
+    }
+    get G() : number | undefined {
+      return this.colorRGB.G.value;
+    }
+    set G(G: number | undefined) {
+      this.colorRGB.G.value = G;
+    }
+    get B() : number | undefined {
+      return this.colorRGB.B.value;
+    }
+    set B(B: number | undefined) {
+      this.colorRGB.B.value = B;
+    }
+    get A() : number | undefined {
+      return this.colorRGB.A.value;
+    }
+    set A(A: number | undefined) {
+      this.colorRGB.A.value = A;
+    }
+
+    set RGB(color: _simpleColor) {
+      this.colorRGB.R.value = color.R;
+      this.colorRGB.G.value = color.G;
+      this.colorRGB.B.value = color.B;
+      this.colorRGB.A.value = color.A;
+    }
+
+    get RGB(): _simpleColor {
+      return {
+        R: this.colorRGB.R.value || 0,
+        G: this.colorRGB.G.value || 0,
+        B: this.colorRGB.B.value || 0,
+        A: this.colorRGB.A.value
+      }
+    }
+
+    get Hex(): string {
+      return `#${this.getHex('R')}${this.getHex('G')}${this.getHex('B')}${this.A ? this.getHex('A') : ''}`;
+    }
+
+    get Hsl(): HslColor | null {
+      if (this.R && this.G && this.B) {
+        const newRGB: _simpleColor = {
+          R : this.R / 255,
+          G : this.G / 255,
+          B : this.B / 255
+        }
+
+        let cmin: number = Math.min(newRGB.R, newRGB.G, newRGB.B),
+            cmax: number = Math.max(newRGB.R, newRGB.G, newRGB.B),
+            delta: number = cmax - cmin,
+            h = 0,
+            s = 0,
+            l = 0;
+        // Calculate hue
+        if (delta == 0) {
+          h = 0;
+        } else if (cmax === newRGB.R) {
+          h = ((newRGB.G - newRGB.B) / delta) % 6;
+        } else if (cmax === newRGB.G) {
+          h = (newRGB.B - newRGB.R) / delta + 2;
+        } else {
+          h = (newRGB.R - newRGB.G) / delta + 4;
+        }
+
+        h = Math.round(h * 60);
+        if (h < 0) {
+          h += 360;
+        }
+
+        // Calculate lightness
+        l = +(((cmax + cmin) / 2) * 100).toFixed(1);
+        // Calculate saturation
+        s = +((delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1))) * 100).toFixed(1);
+        return { H: h, S: s, L:l};
+      } else return null;
+    }
+
+    private get colorRGB(): _color {
+      return this._colorRGB;
+    }
+
+    private set colorRGB(colorRGB: _color) {
+      this._colorRGB = colorRGB;
+    }
 
     constructor(R: number,G: number,B: number) {
         this.R = R;
@@ -126,28 +239,103 @@ export class Color {
         this.B = B;
     }
 
+    public static fromColorRGB(color: _simpleColor) {
+      let newColor = new Color(0,0,0);
+      newColor.RGB = color;
+      return newColor;
+    }
+
     // @ts-ignore
-    public static fromHex(hex: string) {
+    public static fromHex(hex: string): Color {
         if (Color.regHex.test(hex)) {
-            let sets = Color.parseSets(hex.substring(1, hex.length));
-            return new Color(sets.set1, sets.set2, sets.set3);
+            return Color.fromColorRGB(Color.parseSets(hex.substring(1, hex.length)));
         } else {
             return  new Color(0,0,0);
         }
     }
 
-    private static parseSet(sets: string, i: number, isSmall: boolean) {
+    private static parseSet(sets: string, i: number, isSmall: boolean): number {
         let modifier = isSmall ? 1 : 2;
         let set = sets.substring(i * modifier, (i + 1) * modifier);
         return parseInt(isSmall ? set + set : set, 16);
     }
 
-    private static parseSets(sets: string): {set1: number, set2: number, set3: number} {
+    private static parseSets(sets: string): _simpleColor {
         let isSmall = sets.length === 3;
+        let haveAlpha = sets.length === 8;
         return {
-            set1: Color.parseSet(sets, 0,isSmall),
-            set2: Color.parseSet(sets, 1,isSmall),
-            set3: Color.parseSet(sets, 2,isSmall)
+            R: Color.parseSet(sets, 0,isSmall),
+            G: Color.parseSet(sets, 1,isSmall),
+            B: Color.parseSet(sets, 2,isSmall),
+            A: haveAlpha ?  Color.parseSet(sets, 3,isSmall) / 255 * 100 : undefined
         }
     }
+
+    private static getHex(color: Color, colorLetter: string): string {
+      const tmpValue: number = color._colorRGB[colorLetter].value || 0;
+      const value: number = colorLetter === 'A' ? tmpValue / 100 * 255 : tmpValue;
+      const final: string = value.toString(16);
+      return (final.length === 1 ? '0' : '') + final;
+    }
+    private getHex(colorLetter: string): string {
+      return Color.getHex(this, colorLetter);
+    }
+
+    public static isDark(color: Color): boolean | undefined {
+      // YIQ equation from http://24ways.org/2010/calculating-color-contrast
+      let DR = 0.299, DG = 0.587, DB = 0.114;
+      return color.R && color.G && color.B ? ((color.R * DR + color.G * DG + color.B * DB) < 128) : undefined
+    }
+
+    public static isLight(color: Color): boolean | undefined {
+      return !Color.isDark(color);
+    }
+
+    public static negate(color: Color): Color {
+      return color.each((c: number | undefined) => c ? 255 - c : undefined);
+  	}
+
+    public static darken (color: Color, amount: number): Color {
+      return color;
+      //return color.darken(amount).string()
+    }
+
+    public negate() {
+      return Color.negate(this);
+    }
+
+    public isDark(): boolean | undefined {
+      return Color.isDark(this);
+    }
+    public isLight(): boolean | undefined {
+      return Color.isLight(this);
+    }
+
+    public each(cb: (c: number | undefined) => number | undefined): Color {
+      this.R = cb(this.R);
+      this.G = cb(this.G);
+      this.B = cb(this.B);
+      return this;
+    }
+
+    public toString() {
+      return this.RGB;
+    }
+
+    // public [Symbol.iterator]() {
+    //   let step = 0;
+    //   const iterator = {
+    //      next(): ColorItemIterator {
+    //        step++;
+    //        if (step === 0) {
+    //          return { value: this.R.value, done: false };
+    //        } else if (step === 1) {
+    //          return { value: this.G.value, done: false };
+    //        } else {
+    //          return { value: this.B.value, done: true };
+    //        }
+    //      }
+    //   }
+    //   return iterator;
+    // }
 }

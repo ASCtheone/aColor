@@ -1,6 +1,6 @@
 {
-  "name": "acolor",
-  "version": "1.0.0",
+  "name": "asc-color",
+  "version": "1.0.3",
   "description": "Typescript color library",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
